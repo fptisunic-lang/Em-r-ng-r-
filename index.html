@@ -257,20 +257,32 @@ $("#q").oninput=renderGrid;
 
 /* ===== Họ tên, đơn vị, caption: đọc trực tiếp từ Sheet đăng ký (cột C, E, F, G) ===== */
 const REG_SHEET="1v71Maczlg94XsBu-k1I12mkKlFKIK3FbUdzYp-1MfzQ",REG_GID="1382215820";
-function loadRegistrations(){
+function gviz(tq){
   return new Promise(res=>{
-    const cb="emrrReg"+Date.now();let done=false;
-    const finish=v=>{if(done)return;done=true;try{delete window[cb]}catch(e){}s.remove();res(v)};
-    window[cb]=r=>finish(r);
+    const cb="emrrReg"+Date.now()+Math.floor(Math.random()*1e4);let done=false;
     const s=document.createElement("script");
-    s.src="https://docs.google.com/spreadsheets/d/"+REG_SHEET+"/gviz/tq?gid="+REG_GID+"&headers=1&tq="+encodeURIComponent("select C,E,F,G")+"&tqx=responseHandler:"+cb;
+    const finish=v=>{if(done)return;done=true;try{delete window[cb]}catch(e){}s.remove();res(v)};
+    window[cb]=r=>finish(r&&r.status!=="error"?r:null);
+    s.src="https://docs.google.com/spreadsheets/d/"+REG_SHEET+"/gviz/tq?gid="+REG_GID+"&headers=1&tq="+encodeURIComponent(tq)+"&tqx=responseHandler:"+cb;
     s.onerror=()=>finish(null);setTimeout(()=>finish(null),10000);document.head.appendChild(s);
   });
+}
+/* Tìm cột theo tên tiêu đề, rồi chỉ lấy 4 cột cần thiết (không lấy email) */
+let REG_COLS=null;
+async function loadRegistrations(){
+  const head=await gviz("limit 0");if(!head||!head.table)return null;
+  const norm=t=>(t||"").toLowerCase().normalize("NFC");
+  const find=(...keys)=>{const c=head.table.cols.find(c=>keys.some(k=>norm(c.label).includes(k)));return c?c.id:null};
+  REG_COLS={name:find("họ và tên","họ tên"),unit:find("đơn vị","phòng ban"),img:find("tải lên","ảnh dự thi"),cap:find("caption","câu chuyện")};
+  if(!REG_COLS.img)return null;
+  const ids=[REG_COLS.name,REG_COLS.unit,REG_COLS.img,REG_COLS.cap].map(x=>x||REG_COLS.img);
+  return gviz("select "+ids.join(","));
 }
 function mergeRegistrations(r){
   if(!r||!r.table)return 0;const byId={};
   r.table.rows.forEach(row=>{const v=i=>row.c&&row.c[i]&&row.c[i].v!=null?String(row.c[i].v).trim():"";
-    const ids=(v(2).match(/[-\w]{25,}/g)||[]);ids.forEach(id=>{if(!byId[id])byId[id]={name:v(0),unit:v(1),caption:v(3)}})});
+    const ids=(v(2).match(/[-\w]{25,}/g)||[]);
+    ids.forEach(id=>{if(!byId[id])byId[id]={name:REG_COLS.name?v(0):"",unit:REG_COLS.unit?v(1):"",caption:REG_COLS.cap?v(3):""}})});
   let n=0;ENTRIES.forEach(e=>{const m=byId[e.drive];if(m){e.name=m.name||e.name;e.unit=m.unit||e.unit;e.caption=m.caption||e.caption;n++}});
   return n;
 }
