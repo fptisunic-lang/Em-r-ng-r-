@@ -15,6 +15,7 @@ html{color-scheme:light}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
+.btcnote{margin-top:8px;background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:13px}
 .sync.err{background:var(--warn-soft);color:var(--warn)}
 .gate{max-width:520px;margin:40px auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px}
 .gate h2{font-family:var(--display);font-size:26px;margin:0}
@@ -97,6 +98,7 @@ img{max-width:100%}
           <div class="code" id="sCode"></div>
           <h2 id="sName"></h2>
           <div class="sub" id="sSub"></div>
+          <div class="btcnote" id="sBtc" hidden></div>
         </div>
         <div>
           <div class="eyebrow" style="margin-bottom:6px">Caption / câu chuyện</div>
@@ -210,6 +212,7 @@ function renderSheet(){
   if(ENTRIES[cur+1]){const pre=new Image();pre.referrerPolicy="no-referrer";pre.src=thumb(ENTRIES[cur+1],1600)}
   $("#sCode").textContent=e.code;$("#sName").textContent=title(e);
   $("#sSub").textContent=[e.unit,e.name&&e.acct!==e.name?"Tài khoản: "+e.acct:""].filter(Boolean).join(" · ");
+  const bn=$("#sBtc");bn.textContent=e.btc?"Lưu ý của BTC: "+e.btc:"";bn.hidden=!e.btc;
   const story=$("#sStory");story.textContent=e.caption||(regLoaded?"Bài này không có caption.":"Đang tải caption…");story.classList.toggle("empty",!e.caption);
   const box=$("#crits");box.innerHTML="";
   CRITS.forEach(c=>{
@@ -298,8 +301,7 @@ function mergeRegistrations(r){
 (async function boot(){
   try{ENTRIES=await(await fetch("entries.json",{cache:"no-cache"})).json()}catch(e){toast("Không tải được danh sách bài. Hãy tải lại trang.")}
   setJudge(state.judge);
-  loadRegistrations().then(r=>{const n=mergeRegistrations(r);regLoaded=true;if(!n)toast("Chưa tải được caption. Hãy tải lại trang sau ít phút.");
-    if(!$("#view-grid").hidden)renderGrid();if(!$("#view-sheet").hidden)renderSheet()});
+  regLoaded=true; // họ tên, đơn vị, caption đã có sẵn trong entries.json
   if(Object.keys(pending).length)retryPending();
 })();
 </script>
