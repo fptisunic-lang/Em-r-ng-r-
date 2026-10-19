@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Phòng chấm Em Rạng Rỡ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://drive.google.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+html{color-scheme:light}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+.sync.err{background:var(--warn-soft);color:var(--warn)}
+.gate{max-width:520px;margin:40px auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px}
+.gate h2{font-family:var(--display);font-size:26px;margin:0}
+.gate p{margin:0;color:var(--muted)}
+.jbtns{display:grid;gap:8px}
+.jbtns button{text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-weight:600}
+.jbtns button:hover{border-color:var(--rose)}
+</style>
+</head>
+<body>
+<header class="wrap mast">
+  <div>
+    <div class="eyebrow">Ban Giám khảo · Cuộc thi ảnh 20/10/2026 · FPT IS</div>
+    <h1>Em Rạng Rỡ <span class="sun">✺</span></h1>
+    <p class="lede">Mỗi giám khảo chấm độc lập từng bài theo 3 tiêu chí, thang 1–10. Điểm tự lưu sau mỗi lần bấm. Điểm BGK của bài được quy về 40 điểm và lấy trung bình giữa các giám khảo.</p>
+  </div>
+  <div class="weights">
+    <span class="wchip">Cảm xúc, thần thái <b>40%</b></span>
+    <span class="wchip">Bố cục, thẩm mỹ <b>30%</b></span>
+    <span class="wchip">Caption, câu chuyện <b>30%</b></span>
+  </div>
+</header>
+
+<nav class="bar" aria-label="Thông tin giám khảo">
+  <div class="wrap">
+    <div class="judge" style="margin-left:0">
+      <label for="judgeSel">Giám khảo</label>
+      <select id="judgeSel">
+        <option value="">— Chọn tên —</option>
+        <option>Thân Minh Ngọc</option>
+        <option>Dương Thị Vân Anh</option>
+        <option>Phạm Thị Phương Thảo</option>
+        <option>Lưu Thị Hương Trà</option>
+      </select>
+      <div class="progress num"><div class="meter"><i id="meter"></i></div><span id="progTxt">0/0</span></div>
+      <span class="sync" id="sync">Chưa chấm</span>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section id="view-gate" hidden>
+    <div class="gate">
+      <h2>Chào anh/chị giám khảo</h2>
+      <p>Chọn tên của mình để bắt đầu. Điểm được gửi về Ban Tổ chức ngay khi anh/chị bấm chấm, không cần nút nộp bài.</p>
+      <div class="jbtns" id="jbtns"></div>
+    </div>
+  </section>
+
+  <section id="view-grid" hidden>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Lọc">
+        <button data-f="all" aria-pressed="true">Tất cả</button>
+        <button data-f="todo" aria-pressed="false">Chưa chấm</button>
+        <button data-f="done" aria-pressed="false">Đã chấm</button>
+      </div>
+      <input type="search" id="q" placeholder="Tìm theo tên hoặc mã bài">
+      <button class="btn" id="resendBtn" title="Gửi lại toàn bộ điểm đã chấm trên máy này">Gửi lại toàn bộ điểm</button>
+      <button class="btn" id="exportBtn">Sao chép phiếu chấm</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="view-sheet" hidden>
+    <div class="tools">
+      <button class="btn" id="backBtn">← Danh sách bài</button>
+      <span class="dim" id="sheetPos"></span>
+    </div>
+    <div class="sheet">
+      <div>
+        <div class="stage" id="stage"></div>
+        <div class="nav">
+          <button class="btn" id="prevBtn">← Bài trước</button>
+          <span class="hint">Phím ← → để chuyển bài</span>
+          <button class="btn primary" id="nextBtn">Bài tiếp →</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="who">
+          <div class="code" id="sCode"></div>
+          <h2 id="sName"></h2>
+          <div class="sub" id="sSub"></div>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Caption / câu chuyện</div>
+          <div class="story" id="sStory"></div>
+        </div>
+        <div id="crits"></div>
+        <div class="total">
+          <div><small>Điểm của bạn (thang 100)</small><span class="big num" id="t100">–</span></div>
+          <div><small>Quy đổi điểm BGK (thang 40)</small><span class="big num" id="t40">–</span></div>
+        </div>
+        <div>
+          <label class="chk"><input type="checkbox" id="sFlag"> Báo BTC kiểm tra tính hợp lệ (ảnh nghi dùng AI, không rõ người dự thi, không phù hợp chủ đề…)</label>
+        </div>
+        <div>
+          <label for="sNote" class="eyebrow">Ghi chú cho BTC (không bắt buộc)</label>
+          <textarea id="sNote" placeholder="Ví dụ: caption rất chạm, nên cân nhắc giải Câu Chuyện Rạng Rỡ"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ===== Cấu hình: Google Form nhận điểm ===== */
+const FORM_POST="https://docs.google.com/forms/d/e/1FAIpQLSfsBSjCaOp9yitvfz01mFLSSkBfllyFq-RQAQv7fneY-XSzFQ/formResponse";
+const F={judge:"entry.1612193223",code:"entry.1019439262",c1:"entry.1145321048",c2:"entry.894279528",c3:"entry.957172332",flag:"entry.924616006",note:"entry.777301876"};
+const JUDGES=["Thân Minh Ngọc","Dương Thị Vân Anh","Phạm Thị Phương Thảo","Lưu Thị Hương Trà"];
+const CRITS=[
+  {k:"c1",t:"Cảm xúc, thần thái và sự rạng rỡ",pct:"40%",d:"Nụ cười, ánh mắt, năng lượng tích cực toát ra từ người trong ảnh."},
+  {k:"c2",t:"Bố cục, thẩm mỹ và yếu tố hình ảnh",pct:"30%",d:"Khung hình, ánh sáng, màu sắc, độ rõ nét, bối cảnh hài hoà."},
+  {k:"c3",t:"Caption / câu chuyện đi kèm",pct:"30%",d:"Câu chuyện chân thật, gợi cảm xúc, gắn với tinh thần 20/10."}
+];
+
+let ENTRIES=[];
+const $=s=>document.querySelector(s);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let state={judge:store.get("emrr-judge",""),all:store.get("emrr-scores",{})};
+let pending=store.get("emrr-pending",{}); // key judge|code -> true (chưa gửi được)
+let filter="all",cur=-1,regLoaded=false;
+
+const mine=()=>state.judge?(state.all[state.judge]||(state.all[state.judge]={})):{};
+const s100=s=>s&&s.c1&&s.c2&&s.c3?s.c1*4+s.c2*3+s.c3*3:null;
+const s40=s=>{const v=s100(s);return v==null?null:v*0.4};
+const status=s=>{if(!s)return"todo";const n=["c1","c2","c3"].filter(k=>s[k]).length;return n===3?"done":n?"part":"todo"};
+const fmt=(v,d=1)=>v==null||isNaN(v)?"–":v.toFixed(d).replace(".",",");
+const title=e=>e.name||e.acct;
+const thumb=(e,w)=>"https://drive.google.com/thumbnail?id="+e.drive+"&sz=w"+w;
+const thumb2=(e,w)=>"https://lh3.googleusercontent.com/d/"+e.drive+"=w"+w;
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,2600)}
+
+function imgEl(e,cls,w,eager){
+  const box=document.createElement("div");box.className=cls||"";
+  const img=new Image();img.alt="Ảnh dự thi "+e.code;img.decoding="async";img.loading=eager?"eager":"lazy";img.referrerPolicy="no-referrer";
+  img.src=thumb(e,w);let tried=false;
+  img.onerror=()=>{if(!tried){tried=true;img.src=thumb2(e,w);return}
+    img.remove();const n=document.createElement("div");n.className="none";
+    n.innerHTML='<div><b></b>Không tải được ảnh<br><a target="_blank" rel="noopener">Mở ảnh gốc trên Drive ↗</a></div>';
+    n.querySelector("b").textContent=e.code;n.querySelector("a").href="https://drive.google.com/file/d/"+e.drive+"/view";box.appendChild(n)};
+  box.appendChild(img);return box;
+}
+
+/* ===== Gửi điểm về Google Form ===== */
+const timers={};
+function queue(code){const k=state.judge+"|"+code;pending[k]=true;store.set("emrr-pending",pending);clearTimeout(timers[k]);timers[k]=setTimeout(()=>send(state.judge,code),900);setSync()}
+async function send(judge,code){
+  const s=(state.all[judge]||{})[code];const k=judge+"|"+code;if(!s){delete pending[k];return}
+  const body=new URLSearchParams();body.append(F.judge,judge);body.append(F.code,code);
+  body.append(F.c1,s.c1||"");body.append(F.c2,s.c2||"");body.append(F.c3,s.c3||"");body.append(F.flag,s.flag?"Có":"");body.append(F.note,s.note||"");
+  try{await fetch(FORM_POST,{method:"POST",mode:"no-cors",body});delete pending[k]}
+  catch(err){pending[k]=true}
+  store.set("emrr-pending",pending);setSync();
+}
+function setSync(){
+  const n=Object.keys(pending).filter(k=>k.startsWith(state.judge+"|")).length,el=$("#sync");
+  if(!Object.keys(mine()).length){el.textContent="Chưa chấm";el.className="sync";return}
+  if(!navigator.onLine||n>0&&!Object.keys(timers).length){el.textContent=n+" bài chưa gửi được";el.className="sync err";return}
+  el.textContent=n?"Đang gửi…":"Đã gửi về BTC";el.className="sync "+(n?"":"ok");
+}
+function retryPending(){Object.keys(pending).forEach(k=>{const [j,c]=k.split("|");send(j,c)})}
+window.addEventListener("online",retryPending);
+setInterval(()=>{if(Object.keys(pending).length&&navigator.onLine)retryPending()},30000);
+
+/* ===== Danh sách ===== */
+function renderGrid(){
+  const q=$("#q").value.trim().toLowerCase(),m=mine(),g=$("#grid");g.innerHTML="";
+  ENTRIES.forEach((e,i)=>{
+    const st=status(m[e.code]);
+    if(filter==="todo"&&st==="done")return;if(filter==="done"&&st!=="done")return;
+    if(q&&!(title(e)+" "+e.acct+" "+e.code+" "+(e.unit||"")).toLowerCase().includes(q))return;
+    const c=document.createElement("button");c.className="card";c.type="button";
+    const ph=imgEl(e,"ph",480);c.appendChild(ph);
+    if(m[e.code]?.flag){const f=document.createElement("span");f.className="flag";f.textContent="Cần kiểm tra";ph.appendChild(f)}
+    const cap=document.createElement("div");cap.className="cap";
+    const code=document.createElement("span");code.className="code";code.textContent=e.code+(e.unit?" · "+e.unit:"");
+    const nm=document.createElement("span");nm.className="nm";nm.textContent=title(e);
+    const p=document.createElement("span");p.className="pill "+st;p.textContent=st==="done"?fmt(s40(m[e.code]))+" / 40":st==="part"?"Chấm dở":"Chưa chấm";
+    cap.append(code,nm,p);c.appendChild(cap);c.onclick=()=>openSheet(i);g.appendChild(c);
+  });
+  if(!g.children.length)g.innerHTML='<p class="dim">Không có bài nào khớp bộ lọc.</p>';
+  const n=ENTRIES.filter(e=>status(m[e.code])==="done").length;
+  $("#progTxt").textContent=n+"/"+ENTRIES.length;$("#meter").style.width=(ENTRIES.length?n/ENTRIES.length*100:0)+"%";
+}
+
+/* ===== Phiếu chấm ===== */
+function openSheet(i){cur=i;show("sheet");renderSheet();window.scrollTo({top:0})}
+function renderSheet(){
+  const e=ENTRIES[cur],s=mine()[e.code]||{};
+  $("#sheetPos").textContent="Bài "+(cur+1)+" / "+ENTRIES.length;
+  const st=$("#stage");st.innerHTML="";const b=imgEl(e,"",1600,true);b.style.display="contents";st.appendChild(b);
+  if(ENTRIES[cur+1]){const pre=new Image();pre.referrerPolicy="no-referrer";pre.src=thumb(ENTRIES[cur+1],1600)}
+  $("#sCode").textContent=e.code;$("#sName").textContent=title(e);
+  $("#sSub").textContent=[e.unit,e.name&&e.acct!==e.name?"Tài khoản: "+e.acct:""].filter(Boolean).join(" · ");
+  const story=$("#sStory");story.textContent=e.caption||(regLoaded?"Bài này không có caption.":"Đang tải caption…");story.classList.toggle("empty",!e.caption);
+  const box=$("#crits");box.innerHTML="";
+  CRITS.forEach(c=>{
+    const d=document.createElement("div");d.className="crit";
+    d.innerHTML='<div class="crit-head"><b></b><span></span></div><p></p><div class="scale" role="group"></div>';
+    d.querySelector("b").textContent=c.t;d.querySelector("span").textContent="Tỷ trọng "+c.pct;d.querySelector("p").textContent=c.d;
+    const sc=d.querySelector(".scale");sc.setAttribute("aria-label",c.t);
+    for(let v=1;v<=10;v++){const bt=document.createElement("button");bt.type="button";bt.textContent=v;if(v<5)bt.className="lo";
+      bt.setAttribute("aria-pressed",s[c.k]===v?"true":"false");bt.onclick=()=>{rec(e.code)[c.k]=v;save(e.code);renderSheet()};sc.appendChild(bt)}
+    box.appendChild(d);
+  });
+  $("#t100").textContent=s100(s)??"–";$("#t40").textContent=fmt(s40(s));
+  $("#sFlag").checked=!!s.flag;$("#sNote").value=s.note||"";
+  $("#prevBtn").disabled=cur<=0;$("#nextBtn").textContent=cur>=ENTRIES.length-1?"Về danh sách":"Bài tiếp →";
+}
+const rec=code=>{const m=mine();return m[code]||(m[code]={})};
+function save(code){store.set("emrr-scores",state.all);queue(code)}
+$("#sFlag").onchange=ev=>{const c=ENTRIES[cur].code;rec(c).flag=ev.target.checked;save(c)};
+$("#sNote").oninput=ev=>{const c=ENTRIES[cur].code;rec(c).note=ev.target.value;store.set("emrr-scores",state.all);clearTimeout(timers.note);timers.note=setTimeout(()=>{delete timers.note;queue(c)},1200)};
+$("#prevBtn").onclick=()=>{if(cur>0){cur--;renderSheet()}};
+$("#nextBtn").onclick=()=>{if(cur<ENTRIES.length-1){cur++;renderSheet();window.scrollTo({top:0,behavior:"smooth"})}else show("grid")};
+$("#backBtn").onclick=()=>show("grid");
+document.addEventListener("keydown",ev=>{if($("#view-sheet").hidden||/TEXTAREA|INPUT|SELECT/.test(document.activeElement.tagName))return;
+  if(ev.key==="ArrowRight")$("#nextBtn").click();if(ev.key==="ArrowLeft")$("#prevBtn").click()});
+
+/* ===== Giám khảo ===== */
+function setJudge(j){state.judge=j;store.set("emrr-judge",j);$("#judgeSel").value=j;show(j?"grid":"gate");setSync()}
+$("#judgeSel").onchange=ev=>setJudge(ev.target.value);
+JUDGES.forEach(j=>{const b=document.createElement("button");b.type="button";b.textContent=j;b.onclick=()=>setJudge(j);$("#jbtns").appendChild(b)});
+
+/* ===== Sao lưu ===== */
+$("#resendBtn").onclick=()=>{const m=mine(),codes=Object.keys(m);if(!codes.length){toast("Chưa có điểm nào để gửi");return}
+  codes.forEach((c,i)=>setTimeout(()=>{pending[state.judge+"|"+c]=true;send(state.judge,c)},i*250));toast("Đang gửi lại "+codes.length+" bài…")};
+function exportText(){
+  const m=mine(),lines=["EM RẠNG RỠ – PHIẾU CHẤM BGK","Giám khảo: "+state.judge,["Mã","Người dự thi","Cảm xúc","Bố cục","Caption","Điểm /100","Điểm BGK /40","Kiểm tra","Ghi chú"].join("\t")];
+  ENTRIES.forEach(e=>{const s=m[e.code]||{};lines.push([e.code,title(e),s.c1||"",s.c2||"",s.c3||"",s100(s)??"",s40(s)==null?"":fmt(s40(s)),s.flag?"Có":"",(s.note||"").replace(/\s+/g," ")].join("\t"))});
+  return lines.join("\n");
+}
+$("#exportBtn").onclick=async()=>{const t=exportText();try{await navigator.clipboard.writeText(t);toast("Đã sao chép phiếu chấm")}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove();toast("Đã sao chép phiếu chấm")}};
+
+/* ===== Điều hướng ===== */
+function show(v){["gate","grid","sheet"].forEach(x=>$("#view-"+x).hidden=x!==v);if(v==="grid")renderGrid()}
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{filter=b.dataset.f;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));renderGrid()});
+$("#q").oninput=renderGrid;
+
+/* ===== Họ tên, đơn vị, caption: đọc trực tiếp từ Sheet đăng ký (cột C, E, F, G) ===== */
+const REG_SHEET="1v71Maczlg94XsBu-k1I12mkKlFKIK3FbUdzYp-1MfzQ",REG_GID="1382215820";
+function gvizUrl(tq,extra){return "https://docs.google.com/spreadsheets/d/"+REG_SHEET+"/gviz/tq?gid="+REG_GID+"&headers=1&tq="+encodeURIComponent(tq)+(extra||"")}
+/* Cách 1: fetch không kèm cookie Google (tránh lỗi khi trình duyệt đăng nhập nhiều tài khoản) */
+async function gvizFetch(tq){
+  try{const r=await fetch(gvizUrl(tq,"&tqx=out:json"),{credentials:"omit",cache:"no-store"});const t=await r.text();
+    const j=JSON.parse(t.slice(t.indexOf("{"),t.lastIndexOf("}")+1));return j&&j.status!=="error"?j:null}catch(e){return null}
+}
+/* Cách 2 (dự phòng): JSONP */
+function gvizJsonp(tq){
+  return new Promise(res=>{
+    const cb="emrrReg"+Date.now()+Math.floor(Math.random()*1e4);let done=false;
+    const s=document.createElement("script");
+    const finish=v=>{if(done)return;done=true;try{delete window[cb]}catch(e){}s.remove();res(v)};
+    window[cb]=r=>finish(r&&r.status!=="error"?r:null);
+    s.src=gvizUrl(tq,"&tqx=responseHandler:"+cb);
+    s.onerror=()=>finish(null);setTimeout(()=>finish(null),10000);document.head.appendChild(s);
+  });
+}
+async function gviz(tq){return (await gvizFetch(tq))||(await gvizJsonp(tq))}
+/* Tìm cột theo tên tiêu đề, rồi chỉ lấy 4 cột cần thiết (không lấy email) */
+let REG_COLS=null;
+async function loadRegistrations(){
+  const head=await gviz("limit 0");if(!head||!head.table)return null;
+  const norm=t=>(t||"").normalize("NFC").toLowerCase().replace(/\s+/g," ");
+  const find=(...keys)=>{const c=head.table.cols.find(c=>keys.some(k=>norm(c.label).includes(k)));return c?c.id:null};
+  REG_COLS={name:find("họ và tên","họ tên"),unit:find("đơn vị","phòng ban"),img:find("tải lên","ảnh dự thi"),cap:find("caption","câu chuyện")};
+  if(!REG_COLS.img)return null;
+  const ids=[REG_COLS.name,REG_COLS.unit,REG_COLS.img,REG_COLS.cap].map(x=>x||REG_COLS.img);
+  return gviz("select "+ids.join(","));
+}
+function mergeRegistrations(r){
+  if(!r||!r.table)return 0;const byId={};
+  r.table.rows.forEach(row=>{const v=i=>row.c&&row.c[i]&&row.c[i].v!=null?String(row.c[i].v).trim():"";
+    const ids=(v(2).match(/[-\w]{25,}/g)||[]);
+    ids.forEach(id=>{if(!byId[id])byId[id]={name:REG_COLS.name?v(0):"",unit:REG_COLS.unit?v(1):"",caption:REG_COLS.cap?v(3):""}})});
+  let n=0;ENTRIES.forEach(e=>{const m=byId[e.drive];if(m){e.name=m.name||e.name;e.unit=m.unit||e.unit;e.caption=m.caption||e.caption;n++}});
+  return n;
+}
+
+(async function boot(){
+  try{ENTRIES=await(await fetch("entries.json",{cache:"no-cache"})).json()}catch(e){toast("Không tải được danh sách bài. Hãy tải lại trang.")}
+  setJudge(state.judge);
+  loadRegistrations().then(r=>{const n=mergeRegistrations(r);regLoaded=true;if(!n)toast("Chưa tải được caption. Hãy tải lại trang sau ít phút.");
+    if(!$("#view-grid").hidden)renderGrid();if(!$("#view-sheet").hidden)renderSheet()});
+  if(Object.keys(pending).length)retryPending();
+})();
+</script>
+</body>
+</html>
