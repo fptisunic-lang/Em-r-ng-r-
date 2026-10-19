@@ -15,6 +15,7 @@ html{color-scheme:light}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
+.btcnote{margin-top:8px;background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:13px}
 .sync.err{background:var(--warn-soft);color:var(--warn)}
 .gate{max-width:520px;margin:40px auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:14px}
 .gate h2{font-family:var(--display);font-size:26px;margin:0}
@@ -44,7 +45,7 @@ img{max-width:100%}
       <label for="judgeSel">Giám khảo</label>
       <select id="judgeSel">
         <option value="">— Chọn tên —</option>
-        <option>Thân Minh Ngọc</option>
+        <option>Đặng Thị Thúy Hằng</option>
         <option>Dương Thị Vân Anh</option>
         <option>Phạm Thị Phương Thảo</option>
         <option>Lưu Thị Hương Trà</option>
@@ -97,6 +98,7 @@ img{max-width:100%}
           <div class="code" id="sCode"></div>
           <h2 id="sName"></h2>
           <div class="sub" id="sSub"></div>
+          <div class="btcnote" id="sBtc" hidden></div>
         </div>
         <div>
           <div class="eyebrow" style="margin-bottom:6px">Caption / câu chuyện</div>
@@ -124,7 +126,7 @@ img{max-width:100%}
 /* ===== Cấu hình: Google Form nhận điểm ===== */
 const FORM_POST="https://docs.google.com/forms/d/e/1FAIpQLSfsBSjCaOp9yitvfz01mFLSSkBfllyFq-RQAQv7fneY-XSzFQ/formResponse";
 const F={judge:"entry.1612193223",code:"entry.1019439262",c1:"entry.1145321048",c2:"entry.894279528",c3:"entry.957172332",flag:"entry.924616006",note:"entry.777301876"};
-const JUDGES=["Thân Minh Ngọc","Dương Thị Vân Anh","Phạm Thị Phương Thảo","Lưu Thị Hương Trà"];
+const JUDGES=["Đặng Thị Thúy Hằng","Dương Thị Vân Anh","Phạm Thị Phương Thảo","Lưu Thị Hương Trà"];
 const CRITS=[
   {k:"c1",t:"Cảm xúc, thần thái và sự rạng rỡ",pct:"40%",d:"Nụ cười, ánh mắt, năng lượng tích cực toát ra từ người trong ảnh."},
   {k:"c2",t:"Bố cục, thẩm mỹ và yếu tố hình ảnh",pct:"30%",d:"Khung hình, ánh sáng, màu sắc, độ rõ nét, bối cảnh hài hoà."},
@@ -210,6 +212,7 @@ function renderSheet(){
   if(ENTRIES[cur+1]){const pre=new Image();pre.referrerPolicy="no-referrer";pre.src=thumb(ENTRIES[cur+1],1600)}
   $("#sCode").textContent=e.code;$("#sName").textContent=title(e);
   $("#sSub").textContent=[e.unit,e.name&&e.acct!==e.name?"Tài khoản: "+e.acct:""].filter(Boolean).join(" · ");
+  const bn=$("#sBtc");bn.textContent=e.btc?"Lưu ý của BTC: "+e.btc:"";bn.hidden=!e.btc;
   const story=$("#sStory");story.textContent=e.caption||(regLoaded?"Bài này không có caption.":"Đang tải caption…");story.classList.toggle("empty",!e.caption);
   const box=$("#crits");box.innerHTML="";
   CRITS.forEach(c=>{
@@ -257,21 +260,29 @@ $("#q").oninput=renderGrid;
 
 /* ===== Họ tên, đơn vị, caption: đọc trực tiếp từ Sheet đăng ký (cột C, E, F, G) ===== */
 const REG_SHEET="1v71Maczlg94XsBu-k1I12mkKlFKIK3FbUdzYp-1MfzQ",REG_GID="1382215820";
-function gviz(tq){
+function gvizUrl(tq,extra){return "https://docs.google.com/spreadsheets/d/"+REG_SHEET+"/gviz/tq?gid="+REG_GID+"&headers=1&tq="+encodeURIComponent(tq)+(extra||"")}
+/* Cách 1: fetch không kèm cookie Google (tránh lỗi khi trình duyệt đăng nhập nhiều tài khoản) */
+async function gvizFetch(tq){
+  try{const r=await fetch(gvizUrl(tq,"&tqx=out:json"),{credentials:"omit",cache:"no-store"});const t=await r.text();
+    const j=JSON.parse(t.slice(t.indexOf("{"),t.lastIndexOf("}")+1));return j&&j.status!=="error"?j:null}catch(e){return null}
+}
+/* Cách 2 (dự phòng): JSONP */
+function gvizJsonp(tq){
   return new Promise(res=>{
     const cb="emrrReg"+Date.now()+Math.floor(Math.random()*1e4);let done=false;
     const s=document.createElement("script");
     const finish=v=>{if(done)return;done=true;try{delete window[cb]}catch(e){}s.remove();res(v)};
     window[cb]=r=>finish(r&&r.status!=="error"?r:null);
-    s.src="https://docs.google.com/spreadsheets/d/"+REG_SHEET+"/gviz/tq?gid="+REG_GID+"&headers=1&tq="+encodeURIComponent(tq)+"&tqx=responseHandler:"+cb;
+    s.src=gvizUrl(tq,"&tqx=responseHandler:"+cb);
     s.onerror=()=>finish(null);setTimeout(()=>finish(null),10000);document.head.appendChild(s);
   });
 }
+async function gviz(tq){return (await gvizFetch(tq))||(await gvizJsonp(tq))}
 /* Tìm cột theo tên tiêu đề, rồi chỉ lấy 4 cột cần thiết (không lấy email) */
 let REG_COLS=null;
 async function loadRegistrations(){
   const head=await gviz("limit 0");if(!head||!head.table)return null;
-  const norm=t=>(t||"").toLowerCase().normalize("NFC");
+  const norm=t=>(t||"").normalize("NFC").toLowerCase().replace(/\s+/g," ");
   const find=(...keys)=>{const c=head.table.cols.find(c=>keys.some(k=>norm(c.label).includes(k)));return c?c.id:null};
   REG_COLS={name:find("họ và tên","họ tên"),unit:find("đơn vị","phòng ban"),img:find("tải lên","ảnh dự thi"),cap:find("caption","câu chuyện")};
   if(!REG_COLS.img)return null;
@@ -290,8 +301,7 @@ function mergeRegistrations(r){
 (async function boot(){
   try{ENTRIES=await(await fetch("entries.json",{cache:"no-cache"})).json()}catch(e){toast("Không tải được danh sách bài. Hãy tải lại trang.")}
   setJudge(state.judge);
-  loadRegistrations().then(r=>{const n=mergeRegistrations(r);regLoaded=true;if(!n)toast("Chưa tải được caption. Hãy tải lại trang sau ít phút.");
-    if(!$("#view-grid").hidden)renderGrid();if(!$("#view-sheet").hidden)renderSheet()});
+  regLoaded=true; // họ tên, đơn vị, caption đã có sẵn trong entries.json
   if(Object.keys(pending).length)retryPending();
 })();
 </script>
